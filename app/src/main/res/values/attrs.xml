@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="ZingSeekBar">
+        <attr name="zing_color_track" format="color"/>
+        <attr name="zing_color_thumb" format="color"/>
+        <attr name="zing_color_time" format="color"/>
+        <attr name="zing_radius_thumb" format="dimension"/>
+        <attr name="zing_margin_magnifier" format="dimension"/>
+    </declare-styleable>
+</resources>
