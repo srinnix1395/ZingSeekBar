@@ -2,10 +2,23 @@
 <resources>
 
     <declare-styleable name="ZingSeekBar">
-        <attr name="zing_color_track" format="color"/>
-        <attr name="zing_color_thumb" format="color"/>
-        <attr name="zing_color_time" format="color"/>
-        <attr name="zing_radius_thumb" format="dimension"/>
-        <attr name="zing_margin_magnifier" format="dimension"/>
+        <attr name="zing_track_color" format="color"/>
+        <attr name="zing_track_width" format="dimension"/>
+
+        <attr name="zing_thumb_color" format="color"/>
+        <attr name="zing_thumb_radius" format="dimension"/>
+        <attr name="zing_thumb_padding_horizontal" format="dimension"/>
+        <attr name="zing_thumb_padding_vertical" format="dimension"/>
+        <attr name="zing_thumb_text_color" format="color"/>
+        <attr name="zing_thumb_text_size" format="dimension"/>
+
+        <attr name="zing_magnifier_color" format="color"/>
+        <attr name="zing_magnifier_radius" format="color"/>
+        <attr name="zing_magnifier_padding_horizontal" format="dimension"/>
+        <attr name="zing_magnifier_padding_vertical" format="dimension"/>
+        <attr name="zing_magnifier_text_color" format="color"/>
+        <attr name="zing_magnifier_text_size" format="dimension"/>
+        <attr name="zing_magnifier_spacing" format="dimension"/>
+
     </declare-styleable>
 </resources>
