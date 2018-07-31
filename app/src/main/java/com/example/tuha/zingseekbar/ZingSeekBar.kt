@@ -6,12 +6,14 @@ import android.content.res.TypedArray
 import android.graphics.*
 import android.text.TextPaint
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 
 class ZingSeekBar : View {
 
     companion object {
-        val DEFAULT_TRACK_COLOR = Color.parseColor("#909091")
+        val DEFAULT_TRACK_COLOR_NEXT = Color.parseColor("#909091")
+        val DEFAULT_TRACK_COLOR_BEFORE = Color.parseColor("#8947ad")
         val DEFAULT_TRACK_WIDTH = DimensionUtils.dpToPx(2F)
         val DEFAULT_TRACK_RADIUS = DimensionUtils.dpToPx(2F)
 
@@ -33,7 +35,8 @@ class ZingSeekBar : View {
         const val DEFAULT_MAX = 300
     }
 
-    var trackColor: Int = DEFAULT_TRACK_COLOR
+    var trackColorNext: Int = DEFAULT_TRACK_COLOR_NEXT
+    var trackColorBefore: Int = DEFAULT_TRACK_COLOR_BEFORE
     var trackWidth: Float = DEFAULT_TRACK_WIDTH
 
     var thumbColor: Int = DEFAULT_THUMB_COLOR
@@ -58,6 +61,7 @@ class ZingSeekBar : View {
                 changeText(0, field, true)
                 calculateThumbRect()
                 calculateMagnifierRect()
+                calculateTrackRect()
                 invalidate()
             }
         }
@@ -65,10 +69,13 @@ class ZingSeekBar : View {
         set(value) {
             if (value != field) {
                 field = value
-                changeText(field, max, false)
-                calculateThumbRect()
-                calculateMagnifierRect()
-                invalidate()
+                if ((isTouching && isMoving) || !isTouching) {
+                    changeText(field, max, false)
+                    calculateThumbRect()
+                    calculateMagnifierRect()
+                    calculateTrackRect()
+                    invalidate()
+                }
             }
         }
 
@@ -79,15 +86,19 @@ class ZingSeekBar : View {
     private var textProgress = ""
     private var textMax = ""
     private var text = ""
-    private var isShowMagnifier = true
+    private var isTouching = false
+    private var isMoving = false
+    private var currentAction: Int = -1
 
-    private val paintTrack: Paint = Paint()
+    private val paintTrackBefore: Paint = Paint()
+    private val paintTrackNext: Paint = Paint()
     private val paintThumb: Paint = Paint()
     private val paintMagnifier: Paint = Paint()
     private val paintTextThumb: TextPaint = TextPaint()
     private val paintTextMagnifier: TextPaint = TextPaint()
 
-    private val trackRect = RectF()
+    private val trackRectBefore = RectF()
+    private val trackRectNext = RectF()
     private val thumbRect = RectF()
     private val magnifierRect = RectF()
 
@@ -108,7 +119,6 @@ class ZingSeekBar : View {
             return textMagnifierHeight + 2 * magnifierPaddingVertical
         }
 
-
     constructor(context: Context) : this(context, null)
 
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -116,7 +126,7 @@ class ZingSeekBar : View {
     constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr) {
         val typedArray: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.ZingSeekBar)
 
-        trackColor = typedArray.getColor(R.styleable.ZingSeekBar_zing_track_color, trackColor)
+        trackColorBefore = typedArray.getColor(R.styleable.ZingSeekBar_zing_track_color, trackColorBefore)
         trackWidth = typedArray.getDimension(R.styleable.ZingSeekBar_zing_track_width, trackWidth)
         thumbColor = typedArray.getColor(R.styleable.ZingSeekBar_zing_thumb_color, thumbColor)
         thumbRadius = typedArray.getDimension(R.styleable.ZingSeekBar_zing_thumb_radius, thumbRadius)
@@ -138,9 +148,15 @@ class ZingSeekBar : View {
     }
 
     private fun init() {
-        paintTrack.apply {
+        paintTrackBefore.apply {
             isAntiAlias = true
-            color = trackColor
+            color = trackColorBefore
+            style = Paint.Style.FILL
+        }
+
+        paintTrackNext.apply {
+            isAntiAlias = true
+            color = trackColorNext
             style = Paint.Style.FILL
         }
 
@@ -198,14 +214,21 @@ class ZingSeekBar : View {
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
 
-        calculateTrackRect()
-        calculateThumbRect()
-        calculateMagnifierRect()
+        if (changed) {
+            calculateThumbRect()
+            calculateMagnifierRect()
+            calculateTrackRect()
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
         //draw track
-        canvas.drawRoundRect(trackRect, DEFAULT_TRACK_RADIUS, DEFAULT_TRACK_RADIUS, paintTrack)
+        if (trackRectBefore.width() - DEFAULT_TRACK_RADIUS > 0) {
+            canvas.drawRoundRect(trackRectBefore, DEFAULT_TRACK_RADIUS, DEFAULT_TRACK_RADIUS, paintTrackBefore)
+        }
+        if (trackRectNext.width() - DEFAULT_TRACK_RADIUS > 0) {
+            canvas.drawRoundRect(trackRectNext, DEFAULT_TRACK_RADIUS, DEFAULT_TRACK_RADIUS, paintTrackNext)
+        }
 
         //draw thumb
         canvas.drawRoundRect(thumbRect, thumbRadius, thumbRadius, paintThumb)
@@ -214,12 +237,50 @@ class ZingSeekBar : View {
         canvas.drawText(text, xTextThumb, yTextThumb, paintTextThumb)
 
         //draw magnifier
-        if (isShowMagnifier) {
+        if (isTouching) {
             canvas.drawRoundRect(magnifierRect, magnifierRadius, magnifierRadius, paintMagnifier)
             val xTextMagnifier = magnifierRect.left + magnifierPaddingHorizontal
             val yTextMagnifier = magnifierRect.top + magnifierRect.height() / 2 - (paintTextMagnifier.descent() + paintTextMagnifier.ascent()) / 2
             canvas.drawText(text, xTextMagnifier, yTextMagnifier, paintTextMagnifier)
         }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val x = event.x
+        val y = event.y
+        val action = event.action
+
+        when (action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (thumbRect.contains(x, y)) {
+                    isTouching = true
+                    invalidate()
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                isTouching = true
+                isMoving = true
+
+                val xStartPoint = thumbWidth / 2
+                val xEndPoint = width.toFloat() - (thumbWidth / 2)
+                val currentProgress = when {
+                    x < xStartPoint -> 0
+                    x > xEndPoint -> max
+                    else -> (max * (x - xStartPoint) / (width.toFloat() - thumbWidth)).toInt()
+                }
+                this.progress = currentProgress
+            }
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                isTouching = false
+                isMoving = false
+                invalidate()
+            }
+        }
+
+        currentAction = action
+        return true
     }
 
     private fun changeText(progress: Int, max: Int, isChangeTextMax: Boolean) {
@@ -257,9 +318,14 @@ class ZingSeekBar : View {
     private fun calculateTrackRect() {
         val top = height - (thumbHeight / 2) - (trackWidth / 2)
         val bottom = top + trackWidth
-        val left = 0F
-        val right = width.toFloat()
-        trackRect.set(left, top, right, bottom)
+
+        val leftBefore = 0F
+        val rightBefore = thumbRect.left + DEFAULT_TRACK_RADIUS
+        trackRectBefore.set(leftBefore, top, rightBefore, bottom)
+
+        val leftNext = thumbRect.right - DEFAULT_TRACK_RADIUS
+        val rightNext = width.toFloat()
+        trackRectNext.set(leftNext, top, rightNext, bottom)
     }
 
     private fun calculateThumbRect() {
