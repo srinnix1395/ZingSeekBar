@@ -69,6 +69,7 @@ class ZingSeekBar : View {
         set(value) {
             if (value != field) {
                 field = value
+                onSeekBarChangeListener?.invoke(field)
                 if ((isTouching && isMoving) || !isTouching) {
                     changeText(field, max, false)
                     calculateThumbRect()
@@ -78,6 +79,9 @@ class ZingSeekBar : View {
                 }
             }
         }
+    var onSeekBarChangeListener: ((Int) ->Unit)? = null
+    var onStartTrackingListener: (() -> Unit)? = null
+    var onStopTrackingListener: (() -> Unit)? = null
 
     private var textThumbWidth: Float = 0F
     private var textThumbHeight: Float = 0F
@@ -253,6 +257,7 @@ class ZingSeekBar : View {
 
         when (action) {
             MotionEvent.ACTION_DOWN -> {
+                onStartTrackingListener?.invoke()
                 if (thumbRect.contains(x, y)) {
                     isTouching = true
                     invalidate()
@@ -273,6 +278,7 @@ class ZingSeekBar : View {
             }
             MotionEvent.ACTION_UP,
             MotionEvent.ACTION_CANCEL -> {
+                onStopTrackingListener?.invoke()
                 isTouching = false
                 isMoving = false
                 invalidate()
