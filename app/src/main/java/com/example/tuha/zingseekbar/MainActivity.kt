@@ -9,6 +9,18 @@ class MainActivity : AppCompatActivity() {
 
     private var state = 0
     private val handler = Handler()
+    private val runnable = object : Runnable {
+        override fun run() {
+            val progress = if (zing_seek_bar.progress >= zing_seek_bar.max) {
+                0
+            } else {
+                zing_seek_bar.progress + 1
+            }
+            zing_seek_bar.progress = progress
+
+            handler.postDelayed(this,1000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,20 +42,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    private val runnable = object : Runnable {
-        override fun run() {
-            val progress = if (zing_seek_bar.progress >= zing_seek_bar.max) {
-                0
-            } else {
-                zing_seek_bar.progress + 1
-            }
-            zing_seek_bar.progress = progress
-
-            handler.postDelayed(this,1000)
-        }
-    }
 
     private fun startProgress() {
+        handler.removeCallbacks(runnable)
         handler.post(runnable)
     }
 

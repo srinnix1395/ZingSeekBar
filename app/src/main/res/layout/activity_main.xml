@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <com.example.tuha.zingseekbar.ZingSeekBar
+    <com.example.tuha.zingseekbar.SpectrumSeekBar
         android:id="@+id/zing_seek_bar"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
